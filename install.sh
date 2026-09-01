@@ -6,7 +6,8 @@
 MC_VERSION="26.2"
 FABRIC_LOADER_VERSION="0.16.9"
 JAVA_VERSION="21"
-POLYMC_VERSION="7.1"
+
+POLYMC_URL="https://github.com/PolyMC/PolyMC/releases/download/7.1/PolyMC-Linux-amd64-7.1.AppImage"
 
 # ------------------------------------------------------------------------------
 # MOD DOWNLOAD SOURCES (Bookmark / Click to find updates):
@@ -43,14 +44,11 @@ mkdir -p "$targetDir"
 pushd "$targetDir" >/dev/null
 
     # 1. Download PolyMC AppImage
-    polyImage="PolyMC-Linux-${POLYMC_VERSION}-x86_64.AppImage"
-    polyUrl="https://github.com/PolyMC/PolyMC/releases/download/${POLYMC_VERSION}/${polyImage}"
-
     if [ ! -f "PolyMC-Linux-x86_64.AppImage" ]; then
-        echo "📦 Downloading PolyMC $POLYMC_VERSION..."
-        if ! curl -L --progress-bar "$polyUrl" -o "PolyMC-Linux-x86_64.AppImage"; then
+        echo "📦 Downloading PolyMC..."
+        if ! curl -fL --progress-bar "$POLYMC_URL" -o "PolyMC-Linux-x86_64.AppImage"; then
             rm -f "PolyMC-Linux-x86_64.AppImage"
-            fail "Downloading PolyMC $POLYMC_VERSION failed."
+            fail "Downloading PolyMC failed. Check the POLYMC_URL in the script."
         fi
         chmod +x "PolyMC-Linux-x86_64.AppImage"
         echo "✅ PolyMC ready."
