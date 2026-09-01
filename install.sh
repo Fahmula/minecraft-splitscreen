@@ -4,29 +4,21 @@
 # CONFIGURATION
 # ==============================================================================
 MC_VERSION="26.2"
-FABRIC_LOADER_VERSION="0.16.9"
-JAVA_VERSION="25"
-
+LWJGL_VERSION="3.4.1"
 POLYMC_URL="https://github.com/PolyMC/PolyMC/releases/download/7.1/PolyMC-Linux-amd64-7.1.AppImage"
 
-# ------------------------------------------------------------------------------
-# MOD DOWNLOAD SOURCES (Bookmark / Click to find updates):
-# - Fabric API:    https://www.curseforge.com/minecraft/mc-mods/fabric-api/files/all
-# - Framework:     https://www.curseforge.com/minecraft/mc-mods/framework/files/all
-# - Controllable:  https://www.curseforge.com/minecraft/mc-mods/controllable/files/all
-# - mcwifipnp:     https://www.curseforge.com/minecraft/mc-mods/mcwifipnp/files/all
-# - Sodium:        https://www.curseforge.com/minecraft/mc-mods/sodium/files/all
-# ------------------------------------------------------------------------------
-MOD_FILES=(
-    "fabric-api.jar"
-    "framework-fabric.jar"
-    "controllable-fabric.jar"
-    "mcwifipnp-fabric.jar"
-    "sodium-fabric.jar"
-)
-
-REPO_RAW_URL="https://raw.githubusercontent.com/Fahmula/minecraft-splitscreen/refs/heads/main"
+# Target installation directory on Steam Deck
 targetDir="$HOME/.local/share/PolyMC"
+
+# All 6 core mods fetched directly from Modrinth API
+MODRINTH_MODS=(
+    "fabric-api"
+    "yacl"
+    "controlify"
+    "mcwifipnp"
+    "sodium"
+    "modmenu"
+)
 # ==============================================================================
 
 fail() {
@@ -35,20 +27,29 @@ fail() {
     exit 1
 }
 
+# 1. Determine Java version requirement automatically
+if [[ "$MC_VERSION" =~ ^2[6-9]\. ]]; then
+    JAVA_VERSION="25"
+elif [[ "$MC_VERSION" =~ ^1\.(2[1-9]|20\.[5-9]) ]]; then
+    JAVA_VERSION="21"
+else
+    JAVA_VERSION="17"
+fi
+
 if [ ! -d "$targetDir" ]; then
     [ $(df /home | awk '$6 == "/home" { print $4 }') -lt 2000000 ] && fail 'Please make sure you have at least 2GB available on internal storage.'
-    zenity --question --text='This script will install PolyMC, configure 4 Fabric Splitscreen instances, and add Minecraft to Steam.\n\nContinue?' 2>/dev/null || true
+    zenity --question --text="Install Minecraft $MC_VERSION Splitscreen (Fabric + PolyMC)?" 2>/dev/null || true
 fi
 
 mkdir -p "$targetDir"
 pushd "$targetDir" >/dev/null
 
-    # 1. Download PolyMC AppImage
+    # 2. Download PolyMC AppImage
     if [ ! -f "PolyMC-Linux-x86_64.AppImage" ]; then
         echo "📦 Downloading PolyMC..."
         if ! curl -fL --progress-bar "$POLYMC_URL" -o "PolyMC-Linux-x86_64.AppImage"; then
             rm -f "PolyMC-Linux-x86_64.AppImage"
-            fail "Downloading PolyMC failed. Check the POLYMC_URL in the script."
+            fail "Downloading PolyMC failed."
         fi
         chmod +x "PolyMC-Linux-x86_64.AppImage"
         echo "✅ PolyMC ready."
@@ -56,14 +57,17 @@ pushd "$targetDir" >/dev/null
         echo "✅ PolyMC-Linux-x86_64.AppImage already present."
     fi
 
-    # 2. Download Java (Always unpacks cleanly into ./java/)
+    # 3. Download Java Runtime (Java 25 / 21 / 17 into ./java/)
     if [ ! -f "java/bin/java" ]; then
         echo "📦 Downloading Java $JAVA_VERSION..."
-        curl -L --progress-bar "https://api.adoptium.net/v3/binary/latest/${JAVA_VERSION}/ga/linux/x64/jdk/hotspot/normal/eclipse" -o "java.tar.gz"
+        if ! curl -fL --progress-bar "https://api.adoptium.net/v3/binary/latest/${JAVA_VERSION}/ga/linux/x64/jdk/hotspot/normal/eclipse" -o "java.tar.gz"; then
+            rm -f "java.tar.gz"
+            fail "Downloading Java $JAVA_VERSION failed."
+        fi
         echo -n "📦 Extracting Java..."
         mkdir -p java
         if tar -xzf java.tar.gz -C java --strip-components=1 && rm -f java.tar.gz; then
-            echo -e "\r\033[K✅ Java $JAVA_VERSION ready"
+            echo -e "\r\033[K✅ Java $JAVA_VERSION extracted"
         else
             echo -e "\r\033[K❌ Extracting Java failed"
             rm -rf java java.tar.gz
@@ -73,7 +77,37 @@ pushd "$targetDir" >/dev/null
         echo "✅ Java runtime already present."
     fi
 
-    # 3. PolyMC global configuration
+    # 4. Resolve Recommended Fabric Loader Version via API
+    echo "🔍 Querying Fabric Meta for recommended loader..."
+    FABRIC_LOADER_VERSION=$(curl -s "https://meta.fabricmc.net/v2/versions/loader/${MC_VERSION}" | jq -r '.[0].loader.version // empty')
+    if [[ -z "$FABRIC_LOADER_VERSION" ]]; then
+        FABRIC_LOADER_VERSION="0.19.3" # Fallback baseline
+    fi
+    echo "✅ Using Fabric Loader: $FABRIC_LOADER_VERSION"
+
+    # 5. Fetch all mods from Modrinth API
+    mkdir -p repo_mods
+    rm -f repo_mods/*.jar
+    pushd repo_mods >/dev/null
+        for mod in "${MODRINTH_MODS[@]}"; do
+            echo "📦 Fetching latest $mod for Minecraft $MC_VERSION from Modrinth..."
+            download_url=$(curl -sG "https://api.modrinth.com/v2/project/$mod/version" \
+                --data-urlencode "game_versions=[\"$MC_VERSION\"]" \
+                --data-urlencode 'loaders=["fabric"]' \
+                | jq -r '.[0].files[] | select(.primary == true or .primary == null) | .url' | head -n 1)
+
+            if [[ -z "$download_url" || "$download_url" == "null" ]]; then
+                echo "⚠️ Could not find a compatible $mod build for $MC_VERSION"
+            else
+                filename=$(basename "$download_url")
+                if curl -fSL "$download_url" -o "$filename"; then
+                    echo "✅ Downloaded $filename"
+                fi
+            fi
+        done
+    popd >/dev/null
+
+    # 6. PolyMC global configuration
     if [ ! -f polymc.cfg ]; then
         cat <<EOF > polymc.cfg
 [General]
@@ -90,28 +124,19 @@ UseNativeOpenAL=true
 EOF
     fi
 
-    # 4. Fetch mod files from repository
-    mkdir -p repo_mods
-    pushd repo_mods >/dev/null
-        for mod in "${MOD_FILES[@]}"; do
-            echo "📦 Fetching $mod..."
-            curl -sSL "$REPO_RAW_URL/mods/$mod" -o "$mod"
-        done
-    popd >/dev/null
-
-    # 5. Create the 4 static instances
+    # 7. Create/Update the 4 static instances
     for i in {1..4}; do
         instanceDir="instances/splitscreen-$i"
         mkdir -p "$instanceDir/.minecraft/mods" "$instanceDir/.minecraft/config"
         pushd "$instanceDir" >/dev/null
 
-            # Wipe old mods on update, copy fresh ones
+            # Safely replace only mod JARs (saves & configs are untouched)
             rm -f .minecraft/mods/*.jar
             cp ../../repo_mods/*.jar .minecraft/mods/
 
             # Standard options
             if [ ! -f ".minecraft/options.txt" ]; then
-                echo -e "onboardAccessibility:false\nskipMultiplayerWarning:true\ntutorialStep:none" > .minecraft/options.txt
+                echo -e "onboardAccessibility:false\nskipMultiplayerWarning:true\ntutorialStep:none\npauseOnLostFocus:false" > .minecraft/options.txt
                 if [ "$i" -gt 1 ]; then
                     echo "soundCategory_music:0" >> .minecraft/options.txt
                 fi
@@ -121,13 +146,6 @@ EOF
             if [ ! -f ".minecraft/servers.dat" ]; then
                 echo -ne '\n\0\0\x09\0\x07servers\n\0\0\0\x01\x08\0\x02ip\0\x0f127.0.0.1:47283\x08\0\x04name\0\x0bSplitscreen\0\0' > .minecraft/servers.dat
             fi
-
-            # Assign static controller index (P1 = 0.0, P2 = 1.0, etc.)
-            cat <<EOF > ".minecraft/config/controllable-client.toml"
-[client]
-[client.options]
-autoSelectIndex = $((i-1)).0
-EOF
 
             # Write instance.cfg
             cat <<EOF > "instance.cfg"
@@ -148,17 +166,17 @@ EOF
     "components": [
         {
             "cachedName": "LWJGL 3",
-            "cachedVersion": "3.3.3",
+            "cachedVersion": "$LWJGL_VERSION",
             "cachedVolatile": true,
             "dependencyOnly": true,
             "uid": "org.lwjgl3",
-            "version": "3.3.3"
+            "version": "$LWJGL_VERSION"
         },
         {
             "cachedName": "Minecraft",
             "cachedRequires": [
                 {
-                    "suggests": "3.3.3",
+                    "suggests": "$LWJGL_VERSION",
                     "uid": "org.lwjgl3"
                 }
             ],
@@ -199,7 +217,7 @@ EOF
         popd >/dev/null
     done
 
-    # 6. Create accounts.json (P1 - P4)
+    # 8. Create offline account profiles (P1 - P4)
     if [ ! -f "accounts.json" ]; then
         cat <<EOF > accounts.json
 {
@@ -235,28 +253,6 @@ EOF
 EOF
     fi
 
-    # 7. Download launch wrapper
-    rm -f minecraft.sh
-    curl -sSL "$REPO_RAW_URL/minecraft.sh" -o minecraft.sh
-    chmod +x minecraft.sh
-
-    # 8. Add to Steam
-    if [ -d "$HOME/.steam/steam/userdata" ] && ! grep -q local/share/PolyMC/minecraft ~/.steam/steam/userdata/*/config/shortcuts.vdf 2>/dev/null; then
-        rm -f add-to-steam.py
-        curl -sSL "$REPO_RAW_URL/add-to-steam.py" -o add-to-steam.py
-        echo -n '⏳ Shutting down Steam in order to add shortcut...'
-        steam -shutdown 2>/dev/null || true
-        while pgrep -F ~/.steam/steam.pid >/dev/null 2>&1; do
-            echo -n .
-            sleep 1
-        done
-        [ -f shortcuts-backup.vdf ] || cp ~/.steam/steam/userdata/*/config/shortcuts.vdf shortcuts-backup.vdf 2>/dev/null
-        if python3 add-to-steam.py >/dev/null 2>&1; then
-            echo -e "\r\033[K✅ Shortcut added to Steam"
-        fi
-    fi
 popd >/dev/null
 
-echo "✅ Installation completed successfully."
-
-# END OF FILE
+echo "✅ Installation completed successfully!"
