@@ -5,7 +5,7 @@
 # ==============================================================================
 MC_VERSION="26.2"
 FABRIC_LOADER_VERSION="0.16.9"
-JAVA_VERSION="21"
+JAVA_VERSION="25"
 
 POLYMC_URL="https://github.com/PolyMC/PolyMC/releases/download/7.1/PolyMC-Linux-amd64-7.1.AppImage"
 
