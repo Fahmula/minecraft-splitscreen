@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
+import os
+import re
+import struct
+import zlib
+import urllib.request
 
-
-
-
-# --- Config ---
 APPNAME  = "Minecraft Splitscreen"
-EXE      = '/home/deck/.local/share/PollyMC/minecraft.sh'
-STARTDIR = "/home/deck/.local/share/PollyMC"
+EXE      = '/home/deck/.local/share/PolyMC/minecraft.sh'
+STARTDIR = "/home/deck/.local/share/PolyMC"
 
 STEAMGRIDDB_IMAGES = {
     "p": "https://cdn2.steamgriddb.com/grid/a73027901f88055aaa0fd1a9e25d36c7.png",
@@ -17,18 +18,6 @@ STEAMGRIDDB_IMAGES = {
     "_icon": "https://cdn2.steamgriddb.com/icon/add7a048049671970976f3e18f21ade3.ico"
 }
 
-
-
-
-
-import os
-import re
-import struct
-import zlib
-import urllib.request
-
-
-# --- Locate Steam shortcuts file ---
 userdata = os.path.expanduser("~/.steam/steam/userdata")
 user_id = next((d for d in os.listdir(userdata) if d.isdigit()), None)
 if not user_id:
@@ -37,27 +26,21 @@ if not user_id:
 config_dir = os.path.join(userdata, user_id, "config")
 shortcuts_file = os.path.join(config_dir, "shortcuts.vdf")
 
-
-# --- Ensure shortcuts file exists ---
 if not os.path.exists(shortcuts_file):
     with open(shortcuts_file, "wb") as f:
-        f.write(b'\x00shortcuts\x00\x08\x08')  # empty VDF structure
+        f.write(b'\x00shortcuts\x00\x08\x08')
 
-# --- Read current shortcuts.vdf ---
 with open(shortcuts_file, "rb") as f:
     data = f.read()
 
 def get_latest_index(data):
-    # Look for: \x00<index>\x00 followed by shortcut data
     matches = re.findall(rb'\x00(\d+)\x00', data)
     if matches:
         return int(matches[-1])
     return -1
 
-# --- Determine next shortcut index ---
 index = get_latest_index(data) + 1
 
-# --- Create binary shortcut entry ---
 def make_entry(index, appid, appname, exe, startdir):
     x00 = b'\x00'; x01 = b'\x01'; x02 = b'\x02'; x08 = b'\x08'
     b = b''
@@ -73,7 +56,6 @@ def make_entry(index, appid, appname, exe, startdir):
 appid = 0x80000000 | zlib.crc32((APPNAME + EXE).encode("utf-8")) & 0xFFFFFFFF
 entry = make_entry(index, appid, APPNAME, EXE, STARTDIR)
 
-# --- Insert before last 2 \x08s ---
 if data.endswith(b'\x08\x08'):
     new_data = data[:-2] + entry + b'\x08\x08'
     with open(shortcuts_file, "wb") as f:
@@ -83,7 +65,6 @@ else:
     print("❌ File structure not recognized. No changes made.")
     exit(1)
 
-# --- Download SteamGridDB artwork ---
 grid_dir = os.path.join(userdata, user_id, "config", "grid")
 os.makedirs(grid_dir, exist_ok=True)
 
