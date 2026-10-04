@@ -33,21 +33,21 @@ fi
 mkdir -p $targetDir
 pushd $targetDir >/dev/null
 
-    curlProgress 9b5849c657738799469ab7517ab36baf \
+    curlProgress 50ff824528d9de6d123db8c5d14b74ad \
                  PolyMC \
-                 PolyMC-Linux-x86_64.AppImage \
-                 https://github.com/PolyMC/PolyMC/releases/download/7.0/PolyMC-Linux-7.0-x86_64.AppImage
-    chmod +x "PolyMC-Linux-x86_64.AppImage"
+                 PolyMC-Linux-8.1-x86_64.AppImage \
+                 https://github.com/PolyMC/PolyMC/releases/download/8.1/PolyMC-Linux-amd64-8.1.AppImage
+    chmod +x "PolyMC-Linux-8.1-x86_64.AppImage"
 
-    if [ ! -f "jdk-17.0.12/bin/java" ]; then
-        curlProgress e8df6a595078d41b993a71ed55e503ab \
+    if [ ! -f "jdk-25.0.4.1+1-jre/bin/java" ]; then
+        curlProgress dc22566f89ad35891b4a8884271cb06f \
                      Java \
-                     jdk-17.0.12_linux-x64_bin.tar.gz \
-                     https://download.oracle.com/java/17/archive/jdk-17.0.12_linux-x64_bin.tar.gz
+                     OpenJDK25U-jre_x64_linux_hotspot_25.0.4.1_1.tar.gz \
+                     https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jre_x64_linux_hotspot_25.0.4.1_1.tar.gz
         echo -n "📦 Extracting Java"
-        if ! (tar xzf jdk-17.0.12_linux-x64_bin.tar.gz && rm jdk-17.0.12_linux-x64_bin.tar.gz); then
+        if ! (tar xzf OpenJDK25U-jre_x64_linux_hotspot_25.0.4.1_1.tar.gz && rm OpenJDK25U-jre_x64_linux_hotspot_25.0.4.1_1.tar.gz); then
             echo -e "\r\033[K❌ Extracting Java failed"
-            rm -rf jdk-17.0.12_linux-x64_bin.tar.gz jdk-17.0.12
+            rm -rf OpenJDK25U-jre_x64_linux_hotspot_25.0.4.1_1.tar.gz jdk-25.0.4.1+1-jre
             fail 'Extracting Java failed.'
         else
             echo -e "\r\033[K✅ Java extracted"
@@ -64,7 +64,7 @@ pushd $targetDir >/dev/null
             ConfigVersion=1.2
             FlameKeyShouldBeFetchedOnStartup=false
             IconTheme=pe_colored
-            JavaPath=jdk-17.0.12/bin/java
+            JavaPath=jdk-25.0.4.1+1-jre/bin/java
             Language=en_US
             LastHostname=$HOSTNAME
             MaxMemAlloc=4096
@@ -74,42 +74,54 @@ ________EOF
 
     # create the 4 game instances
     for i in {1..4}; do
-        mkdir -p "instances/1.20.1-$i/.minecraft/mods" "instances/1.20.1-$i/.minecraft/config"
-        pushd "instances/1.20.1-$i" >/dev/null
+        mkdir -p "instances/26.3-$i/.minecraft/mods" "instances/26.3-$i/.minecraft/config"
+        pushd "instances/26.3-$i" >/dev/null
 
-            if [ ! -f ".minecraft/mods/framework-forge-1.20.1-0.7.12.jar" ]; then
+            if [ ! -f ".minecraft/mods/fabric-api-0.161.0+26.3.jar" ]; then
+                # download fabric api
+                if [ -f "../26.3-1/.minecraft/mods/fabric-api-0.161.0+26.3.jar" ]; then
+                    cp "../26.3-1/.minecraft/mods/fabric-api-0.161.0+26.3.jar" ".minecraft/mods/fabric-api-0.161.0+26.3.jar"
+                else
+                    curlProgress 0bce1e70b0593d995206eeb3f980d781 \
+                                 'Fabric API' \
+                                 .minecraft/mods/fabric-api-0.161.0+26.3.jar \
+                                 https://cdn.modrinth.com/data/P7dR8mSH/versions/bNnaTiuM/fabric-api-0.161.0%2B26.3.jar
+                fi
+            fi
+
+            if [ ! -f ".minecraft/mods/framework-fabric-0.13.27+26.3.jar" ]; then
                 # download framework
-                if [ -f "../1.20.1-1/.minecraft/mods/framework-forge-1.20.1-0.7.12.jar" ]; then
-                    cp "../1.20.1-1/.minecraft/mods/framework-forge-1.20.1-0.7.12.jar" ".minecraft/mods/framework-forge-1.20.1-0.7.12.jar"
+                if [ -f "../26.3-1/.minecraft/mods/framework-fabric-0.13.27+26.3.jar" ]; then
+                    cp "../26.3-1/.minecraft/mods/framework-fabric-0.13.27+26.3.jar" ".minecraft/mods/framework-fabric-0.13.27+26.3.jar"
                 else
-                    curlProgress 1b6b6ccc60c5a6ef2c232553f8a060f4 \
+                    curlProgress 19fe7aed54c17aa37c0b1236116f43b3 \
                                  'Framework Mod' \
-                                 .minecraft/mods/framework-forge-1.20.1-0.7.12.jar \
-                                 https://mediafilez.forgecdn.net/files/5911/986/framework-forge-1.20.1-0.7.12.jar
+                                 .minecraft/mods/framework-fabric-0.13.27+26.3.jar \
+                                 https://github.com/MrCrayfish/Framework/releases/download/v0.13.27%2B26.3/framework-fabric-0.13.27%2B26.3-signed.jar
                 fi
             fi
 
-            if [ ! -f ".minecraft/mods/controllable-forge-1.20.1-0.21.7-release.jar" ]; then
+            if [ ! -f ".minecraft/mods/controllable-fabric-0.26.2+26.3.jar" ]; then
                 # download controllable
-                if [ -f "../1.20.1-1/.minecraft/mods/controllable-forge-1.20.1-0.21.7-release.jar" ]; then
-                    cp "../1.20.1-1/.minecraft/mods/controllable-forge-1.20.1-0.21.7-release.jar" ".minecraft/mods/controllable-forge-1.20.1-0.21.7-release.jar"
+                if [ -f "../26.3-1/.minecraft/mods/controllable-fabric-0.26.2+26.3.jar" ]; then
+                    cp "../26.3-1/.minecraft/mods/controllable-fabric-0.26.2+26.3.jar" ".minecraft/mods/controllable-fabric-0.26.2+26.3.jar"
                 else
-                    curlProgress 54a8852b383aa35ccbe773f00dafe944 \
+                    curlProgress 414eda92f33034407259b4b3694d2547 \
                                  'Controllable Mod' \
-                                 .minecraft/mods/controllable-forge-1.20.1-0.21.7-release.jar \
-                                 https://raw.githubusercontent.com/Fahmula/minecraft-splitscreen/refs/tags/1.20.1/controllable-forge-1.20.1-0.21.7-release.jar
+                                 .minecraft/mods/controllable-fabric-0.26.2+26.3.jar \
+                                 https://raw.githubusercontent.com/Fahmula/minecraft-splitscreen/refs/tags/26.3/controllable-fabric-0.26.2%2B26.3.jar
                 fi
             fi
 
-            if [ ! -f ".minecraft/mods/mcwifipnp-1.7.3-1.20.1-forge.jar" ]; then
+            if [ ! -f ".minecraft/mods/mcwifipnp-2.1.4-26.3-fabric.jar" ]; then
                 # download mcwifipnp
-                if [ -f "../1.20.1-1/.minecraft/mods/mcwifipnp-1.7.3-1.20.1-forge.jar" ]; then
-                    cp "../1.20.1-1/.minecraft/mods/mcwifipnp-1.7.3-1.20.1-forge.jar" ".minecraft/mods/mcwifipnp-1.7.3-1.20.1-forge.jar"
+                if [ -f "../26.3-1/.minecraft/mods/mcwifipnp-2.1.4-26.3-fabric.jar" ]; then
+                    cp "../26.3-1/.minecraft/mods/mcwifipnp-2.1.4-26.3-fabric.jar" ".minecraft/mods/mcwifipnp-2.1.4-26.3-fabric.jar"
                 else
-                    curlProgress e742cacdecc43586e7ef2e0e724ef923 \
+                    curlProgress fe536cfcdc54d7c8fde28a89e6687e1b \
                                  'LAN World Plug-n-Play Mod' \
-                                 .minecraft/mods/mcwifipnp-1.7.3-1.20.1-forge.jar \
-                                 https://cdn.modrinth.com/data/RTWpcTBp/versions/r19tuFwp/mcwifipnp-1.7.3-1.20.1-forge.jar
+                                 .minecraft/mods/mcwifipnp-2.1.4-26.3-fabric.jar \
+                                 https://cdn.modrinth.com/data/RTWpcTBp/versions/Bj7WrQZY/mcwifipnp-2.1.4-26.3-fabric.jar
                 fi
             fi
 
@@ -127,8 +139,7 @@ ________EOF
             if [ ! -f ".minecraft/config/controllable-client.toml" ]; then
                 # create controllable-client.toml
                 sed 's/^                    //' <<________________EOF > ".minecraft/config/controllable-client.toml"
-                    [client]
-                    [client.options]
+                    [options]
                     autoSelectIndex = $((i-1)).0
 ________________EOF
             fi
@@ -138,10 +149,10 @@ ________________EOF
                     [General]
                     ConfigVersion=1.2
                     InstanceType=OneSix
-                    JavaPath=jdk-17.0.12/bin/java
+                    JavaPath=jdk-25.0.4.1+1-jre/bin/java
                     OverrideJavaLocation=true
                     iconKey=default
-                    name=1.20.1-$i
+                    name=26.3-$i
                     JvmArgs=-Dorg.lwjgl.openal.libname=/usr/lib/libopenal.so
                     OverrideJavaArgs=true
 ________________EOF
@@ -153,36 +164,49 @@ ________________EOF
                         "components": [
                             {
                                 "cachedName": "LWJGL 3",
-                                "cachedVersion": "3.3.1",
+                                "cachedVersion": "3.4.3",
                                 "cachedVolatile": true,
                                 "dependencyOnly": true,
                                 "uid": "org.lwjgl3",
-                                "version": "3.3.1"
+                                "version": "3.4.3"
                             },
                             {
                                 "cachedName": "Minecraft",
                                 "cachedRequires": [
                                     {
-                                        "suggests": "3.3.1",
+                                        "suggests": "3.4.3",
                                         "uid": "org.lwjgl3"
                                     }
                                 ],
-                                "cachedVersion": "1.20.1",
+                                "cachedVersion": "26.3",
                                 "important": true,
                                 "uid": "net.minecraft",
-                                "version": "1.20.1"
+                                "version": "26.3"
                             },
                             {
-                                "cachedName": "Forge",
+                                "cachedName": "Intermediary Mappings",
                                 "cachedRequires": [
                                     {
-                                        "equals": "1.20.1",
+                                        "equals": "26.3",
                                         "uid": "net.minecraft"
                                     }
                                 ],
-                                "cachedVersion": "47.4.0",
-                                "uid": "net.minecraftforge",
-                                "version": "47.4.0"
+                                "cachedVersion": "26.3",
+                                "cachedVolatile": true,
+                                "dependencyOnly": true,
+                                "uid": "net.fabricmc.intermediary",
+                                "version": "26.3"
+                            },
+                            {
+                                "cachedName": "Fabric Loader",
+                                "cachedRequires": [
+                                    {
+                                        "uid": "net.fabricmc.intermediary"
+                                    }
+                                ],
+                                "cachedVersion": "0.19.5",
+                                "uid": "net.fabricmc.fabric-loader",
+                                "version": "0.19.5"
                             }
                         ],
                         "formatVersion": 1
@@ -311,10 +335,10 @@ ________EOF
 
     # download the launch wrapper
     rm -f minecraft.sh
-    curlProgress 2822cb48a56fd925d620e3001dbffd4f \
+    curlProgress 5cd816ccc9f67de0b4df1c082f5c611d \
                  'Launch script' \
                  minecraft.sh \
-                 https://raw.githubusercontent.com/Fahmula/minecraft-splitscreen/refs/tags/1.20.1/minecraft.sh
+                 https://raw.githubusercontent.com/Fahmula/minecraft-splitscreen/refs/tags/26.3/minecraft.sh
     chmod +x minecraft.sh
 
     # add the launch wrapper to Steam
@@ -323,7 +347,7 @@ ________EOF
         curlProgress 6383cc991f751b6dc5fdd2a3f5d83b7c \
                      'Shortcut creation script' \
                      add-to-steam.py \
-                     https://raw.githubusercontent.com/Fahmula/minecraft-splitscreen/refs/tags/1.20.1/add-to-steam.py
+                     https://raw.githubusercontent.com/Fahmula/minecraft-splitscreen/refs/tags/26.3/add-to-steam.py
         echo -n '⏳ Shutting down Steam in order to add the Minecraft shortcut'
         steam -shutdown
         while pgrep -F ~/.steam/steam.pid >/dev/null; do

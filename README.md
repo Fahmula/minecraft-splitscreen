@@ -15,8 +15,8 @@ A script to run multiple instances of Minecraft in splitscreen mode on Steam Dec
 Download [InstallMinecraft.desktop](https://github.com/Fahmula/minecraft-splitscreen/releases/latest/download/InstallMinecraft.desktop) with your Steam Deck in Desktop Mode and open it in the file browser Dolphin.
 
 It should:
-- Download PolyMC and Java 17
-- Create 4 Minecraft 1.20.1 instances with a pre-configured Controllable mod so each instance can be controlled using a different controller
+- Download PolyMC and Java 25
+- Create 4 Minecraft 26.3 (Fabric) instances with a pre-configured Controllable mod so each instance can be controlled using a different controller
 - Create 4 offline accounts in PolyMC
 - Download my launch wrapper that starts four Minecraft instances in a splitscreen configuration from Game Mode
 - Shutdown Steam in order to add the launch wrapper to Steam with artwork from steamgriddb.com
@@ -46,6 +46,8 @@ While testing the installation, sometimes the instances could not connect to the
 ## Notes
 
 - The first launch takes quite a while because it's downloading all the assets
+- Each Minecraft version is its own [release](https://github.com/Fahmula/minecraft-splitscreen/releases). To install an older version, download `InstallMinecraft.desktop` from that release
+- `controllable-fabric-*.jar` is [Controllable](https://github.com/MrCrayfish/Controllable) built with `controllable-autoSelectIndex.patch`, which adds the "Controller Index" setting so each instance picks a different controller
 - On my TV, I set Minecraft to do 1440p in the Game Mode settings and I set UI scale to 3 so that the crafting table and its recipes fit next to each other
 
 ## License

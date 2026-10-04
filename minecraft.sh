@@ -8,6 +8,7 @@
 # 4. It executes a KWin script that removes borders of all windows and arranges them in a grid.
 
 export target=/tmp
+export SDL_VIDEO_DRIVER=x11 # Minecraft opens native Wayland windows otherwise, which xwininfo can't see
 cd /home/deck/.local/share/PolyMC
 
 # writes a KWin (Steam Deck window manager) script to a file and executes it
@@ -100,6 +101,7 @@ writeOfflineModeConfig() {
                         "motd": "Splitscreen",
                         "UseUPnP": false,
                         "OnlineMode": false,
+                        "multiplayer-scope": "LAN",
                         "EnableUUIDFixer": false,
                         "CopyToClipboard": false
                     }
@@ -112,7 +114,7 @@ ________________EOF
 # launches Minecraft with power saving and notifications disabled and waits until a new window appears
 launchGame() {
     windowCountBeforeLaunch=$(xwininfo -root -tree | grep 854x480 | wc -l)
-    kde-inhibit --power --screenSaver --colorCorrect --notifications ./PolyMC-Linux-x86_64.AppImage -l "$1" -a "$2" &
+    kde-inhibit --power --screenSaver --colorCorrect --notifications ./PolyMC-Linux-8.1-x86_64.AppImage -l "$1" -a "$2" &
     echo $! >> minecraft.pid
     # wait for the game window to appear so the order of the windows is correct
     while [ $(xwininfo -root -tree | grep 854x480 | wc -l) -le $windowCountBeforeLaunch ]; do
@@ -127,10 +129,10 @@ launchGames() {
     writeOfflineModeConfigPID=$!
 
     rm -f minecraft.pid
-    launchGame 1.20.1-1 P1
-    launchGame 1.20.1-2 P2
-    [ "$numberOfControllers" -gt 2 ] && launchGame 1.20.1-3 P3
-    [ "$numberOfControllers" -gt 3 ] && launchGame 1.20.1-4 P4
+    launchGame 26.3-1 P1
+    launchGame 26.3-2 P2
+    [ "$numberOfControllers" -gt 2 ] && launchGame 26.3-3 P3
+    [ "$numberOfControllers" -gt 3 ] && launchGame 26.3-4 P4
 
     qdbus org.kde.plasmashell /PlasmaShell evaluateScript "panelById(panelIds[0]).hiding = 'autohide';" # didn't always trigger the first time
     splitScreen "^Minecraft"
@@ -163,7 +165,7 @@ launchGames() {
         launchGames
     else
         if [ "$numberOfControllers" -lt 2 ]; then
-            ./PolyMC-Linux-x86_64.AppImage -l 1.20.1-1 -a P1
+            ./PolyMC-Linux-8.1-x86_64.AppImage -l 26.3-1 -a P1
         else
             SCRIPT_PATH="$(readlink -f "$0")"
             mkdir -p ~/.config/autostart

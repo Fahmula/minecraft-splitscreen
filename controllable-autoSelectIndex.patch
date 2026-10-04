@@ -1,0 +1,99 @@
+diff --git a/common/src/main/java/com/mrcrayfish/controllable/Config.java b/common/src/main/java/com/mrcrayfish/controllable/Config.java
+index 544447e..07fec87 100644
+--- a/common/src/main/java/com/mrcrayfish/controllable/Config.java
++++ b/common/src/main/java/com/mrcrayfish/controllable/Config.java
+@@ -31,6 +31,9 @@ public class Config
+             @ConfigProperty(name = "autoSelect", comment = "If enabled, controller will be automatically selected on start up or when plugged in")
+             public final BoolProperty autoSelect = BoolProperty.create(true);
+ 
++            @ConfigProperty(name = "autoSelectIndex", comment = "The index of the controller to auto-select (-1 for first available)")
++            public final DoubleProperty autoSelectIndex = DoubleProperty.create(-1.0, -1.0, 10.0);
++
+             @ConfigProperty(name = "paperDoll", comment = "If enabled, the player will render in the top left corner likes Bedrock Edition")
+             public final BoolProperty paperDoll = BoolProperty.create(true);
+ 
+diff --git a/common/src/main/java/com/mrcrayfish/controllable/client/gui/screens/SettingsScreen.java b/common/src/main/java/com/mrcrayfish/controllable/client/gui/screens/SettingsScreen.java
+index faf210c..d4d647f 100644
+--- a/common/src/main/java/com/mrcrayfish/controllable/client/gui/screens/SettingsScreen.java
++++ b/common/src/main/java/com/mrcrayfish/controllable/client/gui/screens/SettingsScreen.java
+@@ -329,6 +329,7 @@ public class SettingsScreen extends Screen
+             optionsList.addEntry(new TabOptionTitleItem(Component.translatable("controllable.gui.title.controller").withStyle(ChatFormatting.BOLD, ChatFormatting.YELLOW)));
+             optionsList.addEntry(new TabOptionEnumItem<>(Config.CLIENT.options.analogMovement));
+             optionsList.addEntry(new TabOptionToggleItem(Config.CLIENT.options.autoSelect));
++            optionsList.addEntry(new TabOptionSliderItem(Config.CLIENT.options.autoSelectIndex, 1.0));
+             optionsList.addEntry(new TabOptionToggleItem(Config.CLIENT.options.backgroundInput));
+ 
+             TabOptionSliderItem deadzoneOption = new TabOptionSliderItem(Config.CLIENT.options.thumbstickDeadZone, 0.01);
+diff --git a/common/src/main/java/com/mrcrayfish/controllable/client/input/AdaptiveControllerManager.java b/common/src/main/java/com/mrcrayfish/controllable/client/input/AdaptiveControllerManager.java
+index d2c07c3..ae5a284 100644
+--- a/common/src/main/java/com/mrcrayfish/controllable/client/input/AdaptiveControllerManager.java
++++ b/common/src/main/java/com/mrcrayfish/controllable/client/input/AdaptiveControllerManager.java
+@@ -25,6 +25,7 @@ import java.net.URISyntaxException;
+ import java.nio.file.Files;
+ import java.nio.file.Path;
+ import java.util.ArrayList;
++import java.util.Comparator;
+ import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+@@ -97,11 +98,37 @@ public abstract class AdaptiveControllerManager
+         // If no controller is active and auto select is enabled, connect to the first controller
+         if(this.ready && activeController == null && Config.CLIENT.options.autoSelect.get())
+         {
+-            activeController = this.connectToBestGameController();
++            activeController = this.connectToAutoSelectController();
+             this.sendControllerToast(true, activeController);
+         }
+     }
+ 
++    /**
++     * Connects to the controller at the configured auto select index, or to the best game controller
++     * if no index is configured. The index counts connected controllers in the order they were connected.
++     */
++    @Nullable
++    private Controller connectToAutoSelectController()
++    {
++        int targetIndex = (int) Config.CLIENT.options.autoSelectIndex.get().doubleValue();
++        if(targetIndex < 0)
++            return this.connectToBestGameController();
++
++        List<Number> jids = new ArrayList<>(this.createRawControllerMap().keySet());
++        jids.sort(Comparator.comparingLong(Number::longValue));
++        if(targetIndex < jids.size())
++        {
++            Number jid = jids.get(targetIndex);
++            Controller controller = this.createController(targetIndex, jid);
++            if(controller != null && this.setActiveController(controller) && this.activeController != null)
++            {
++                return controller;
++            }
++        }
++        Constants.LOG.warn("Could not connect to controller at index {}", targetIndex);
++        return null;
++    }
++
+     protected void sendControllerToast(boolean connected, @Nullable Controller controller)
+     {
+         Minecraft mc = Minecraft.getInstance();
+@@ -244,7 +271,7 @@ public abstract class AdaptiveControllerManager
+         /* Attempts to load the first game controller connected if auto select is enabled */
+         if(Config.CLIENT.options.autoSelect.get())
+         {
+-            this.connectToBestGameController();
++            this.connectToAutoSelectController();
+         }
+         this.ready = true;
+     }
+diff --git a/common/src/main/resources/assets/controllable/lang/en_us.json b/common/src/main/resources/assets/controllable/lang/en_us.json
+index a4d6d28..2cbdfba 100644
+--- a/common/src/main/resources/assets/controllable/lang/en_us.json
++++ b/common/src/main/resources/assets/controllable/lang/en_us.json
+@@ -201,6 +201,8 @@
+     "framework_config.controllable.client.options.analogMovement.tooltip": "Allows you to control the settings of analog movement. §6Disabled§f means player movement will behave like a keyboard. §6Local Only§f means player movement depends on how much input is applied to the thumbstick, giving you precise control over direction and speed. However, this will only work in Singleplayer and LAN servers. §6Always§f is the same as §6Local Only§f but allows you to use the feature on remote servers. §cIt is recommended to keep this set to Local Only",
+     "framework_config.controllable.client.options.autoSelect": "Auto Select",
+     "framework_config.controllable.client.options.autoSelect.tooltip": "If enabled, controller will be automatically selected on start up or when plugged in",
++    "framework_config.controllable.client.options.autoSelectIndex": "Controller Index",
++    "framework_config.controllable.client.options.autoSelectIndex.tooltip": "The index of the controller to auto-select (-1 for first available)",
+     "framework_config.controllable.client.options.backgroundInput": "Background Input",
+     "framework_config.controllable.client.options.backgroundInput.tooltip": "If enabled, allows reading controller input even if the window is not in focus. This option will also prevent the game from auto pausing if the window loses focus.",
+     "framework_config.controllable.client.options.consoleHotbar": "Console Hotbar",
