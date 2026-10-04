@@ -1,7 +1,7 @@
 #!/usr/bin/env xdg-open
 [Desktop Entry]
 Name=Install Splitscreen Minecraft
-Exec=sh -c 'rm -f /tmp/imcss.sh && curl -s https://raw.githubusercontent.com/ArnoldSmith86/minecraft-splitscreen/refs/heads/main/install.sh -o /tmp/imcss.sh && grep -q 'END OF FILE' /tmp/imcss.sh && bash /tmp/imcss.sh || zenity --error --text="Downloading installer failed. Please try again."'
+Exec=sh -c 'rm -f /tmp/imcss.sh && curl -s https://raw.githubusercontent.com/Fahmula/minecraft-splitscreen/refs/heads/main/install.sh -o /tmp/imcss.sh && grep -q 'END OF FILE' /tmp/imcss.sh && bash /tmp/imcss.sh || zenity --error --text="Downloading installer failed. Please try again."'
 Icon=steamdeck-gaming-return
 Terminal=true
 Type=Application

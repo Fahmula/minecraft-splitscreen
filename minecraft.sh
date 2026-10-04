@@ -145,7 +145,12 @@ launchGames() {
 # takes care of writing an autostart entry for Plasma and calling the correct functions based on where and how this script is started
 (
     echo "$(date) - Script called with $# arguments: $@"
-    export numberOfControllers=$(( $(ls -1 /dev/input/js* | wc -l) / 2 )) # each one should have the real one and an emulated xbox one
+    # Steam creates one emulated "Microsoft X-Box 360 pad <n>" per controller, so count those
+    # (the real devices are unreliable: since SteamOS 3.8 the Deck's built-in controls no longer show up as one)
+    export numberOfControllers=$(cat /sys/class/input/js*/device/name 2>/dev/null | grep -cE '^Microsoft X-Box 360 pad [0-9]+$')
+    if [ "$numberOfControllers" -eq 0 ]; then
+        numberOfControllers=$(( $(ls -1 /dev/input/js* | wc -l) / 2 )) # Steam isn't running: assume each one has the real one and an emulated xbox one
+    fi
     echo "Number of controllers: $numberOfControllers:"
     ls -l /dev/input/js*
 

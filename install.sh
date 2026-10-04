@@ -97,7 +97,7 @@ ________EOF
                     curlProgress 54a8852b383aa35ccbe773f00dafe944 \
                                  'Controllable Mod' \
                                  .minecraft/mods/controllable-forge-1.20.1-0.21.7-release.jar \
-                                 https://raw.githubusercontent.com/ArnoldSmith86/minecraft-splitscreen/refs/heads/main/controllable-forge-1.20.1-0.21.7-release.jar
+                                 https://raw.githubusercontent.com/Fahmula/minecraft-splitscreen/refs/heads/main/controllable-forge-1.20.1-0.21.7-release.jar
                 fi
             fi
 
@@ -311,10 +311,10 @@ ________EOF
 
     # download the launch wrapper
     rm -f minecraft.sh
-    curlProgress 1dfe4d378c21a02901b46aa7305a9d5d \
+    curlProgress 2822cb48a56fd925d620e3001dbffd4f \
                  'Launch script' \
                  minecraft.sh \
-                 https://raw.githubusercontent.com/ArnoldSmith86/minecraft-splitscreen/refs/heads/main/minecraft.sh
+                 https://raw.githubusercontent.com/Fahmula/minecraft-splitscreen/refs/heads/main/minecraft.sh
     chmod +x minecraft.sh
 
     # add the launch wrapper to Steam
@@ -323,7 +323,7 @@ ________EOF
         curlProgress 6383cc991f751b6dc5fdd2a3f5d83b7c \
                      'Shortcut creation script' \
                      add-to-steam.py \
-                     https://raw.githubusercontent.com/ArnoldSmith86/minecraft-splitscreen/refs/heads/main/add-to-steam.py
+                     https://raw.githubusercontent.com/Fahmula/minecraft-splitscreen/refs/heads/main/add-to-steam.py
         echo -n '⏳ Shutting down Steam in order to add the Minecraft shortcut'
         steam -shutdown
         while pgrep -F ~/.steam/steam.pid >/dev/null; do
